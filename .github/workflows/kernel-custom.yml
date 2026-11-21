@@ -652,7 +652,10 @@ jobs:
             exit 1
           fi
           cd release-assets
-          sha256sum *.zip *.img 2>/dev/null > SHA256SUMS.txt
+          # 只对实际存在的刷机包算 SHA256：无 *.img 时 glob 会传字面量给
+          # sha256sum 导致非零退出，在 set -e 下中断发布。
+          mapfile -t pkgs < <(find . -maxdepth 1 -type f \( -name '*.zip' -o -name '*.img' \) | sort)
+          sha256sum "${pkgs[@]}" > SHA256SUMS.txt
           [ -s SHA256SUMS.txt ] || { echo "::error::SHA256SUMS 为空" >&2; exit 1; }
           echo "count=$n" >> "$GITHUB_OUTPUT"
           echo "--- SHA256SUMS.txt ---"
