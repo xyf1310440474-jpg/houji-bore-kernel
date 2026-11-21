@@ -347,11 +347,6 @@ on:
           - "仅上传 AnyKernel3.zip"
           - "上传全部"
         default: "仅上传 AnyKernel3.zip"
-      publish_release:
-        description: "构建成功后自动创建 Release 并附上刷机包与 SHA256"
-        required: false
-        type: boolean
-        default: true
       ksu_mode:
         description: "KernelSU / SUSFS 模式"
         required: true
@@ -616,7 +611,7 @@ jobs:
   publish-release:
     name: "发布 Release（含刷机包 + SHA256）"
     needs: [resolve-version, build-custom-kernel]
-    if: ${{ inputs.publish_release && needs.build-custom-kernel.result == 'success' }}
+    if: ${{ needs.build-custom-kernel.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
