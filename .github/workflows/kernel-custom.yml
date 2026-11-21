@@ -626,25 +626,37 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release-assets
-          # 从所有 artifact 里挑出 AK3 zip / img 刷机包（排除日志与 rejects）
-          { find artifacts/ -type f \( -name '*AnyKernel3.zip' -o -name '*.img' \) \
-            | grep -viE 'log|reject'; } > /tmp/candidates.txt || true
           n=0
-          while IFS= read -r f; do
-            [ -z "$f" ] && continue
-            cp "$f" release-assets/
-            n=$((n+1))
-          done < /tmp/candidates.txt
+          # download-artifact@v4 会把每个 artifact 解包成同名目录；
+          # AK3 产物解包后是散文件(anykernel.sh/Image/META-INF...)，不是 zip，
+          # 所以把含 anykernel.sh 的目录重新打包成可刷 zip。
+          for d in artifacts/*/; do
+            [ -d "$d" ] || continue
+            base=$(basename "$d")
+            case "$base" in *[Ll]og*|*reject*) continue ;; esac
+            if [ -f "$d/anykernel.sh" ]; then
+              ( cd "$d" && zip -qr "$OLDPWD/release-assets/${base}.zip" . )
+              echo "打包 AK3: $base -> ${base}.zip"
+              n=$((n+1))
+              continue
+            fi
+            # 目录里若有现成 zip/img（manager 等），直接挑出来
+            while IFS= read -r f; do
+              [ -z "$f" ] && continue
+              cp "$f" release-assets/
+              n=$((n+1))
+            done < <(find "$d" -type f \( -name '*.zip' -o -name '*.img' \) | grep -viE 'log|reject' || true)
+          done
           if [ "$n" -eq 0 ]; then
-            echo "::error::未找到 AnyKernel3.zip / .img 产物，终止发布"
+            echo "::error::未找到 AnyKernel3 刷机包（anykernel.sh 目录或 .zip/.img），终止发布"
             exit 1
           fi
           cd release-assets
-          sha256sum * > SHA256SUMS.txt
+          sha256sum *.zip *.img 2>/dev/null > SHA256SUMS.txt
+          [ -s SHA256SUMS.txt ] || { echo "::error::SHA256SUMS 为空" >&2; exit 1; }
           echo "count=$n" >> "$GITHUB_OUTPUT"
           echo "--- SHA256SUMS.txt ---"
           cat SHA256SUMS.txt
-
       - name: 生成 Release 说明
         id: notes
         env:
