@@ -244,10 +244,13 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.cache/bazel
-          key: ${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.sub_level }}-bazel-${{ github.sha }}
+          # -pathfix: 仓库从 AnyKernel3 改名 houji-bore-kernel 后，旧 bazel 缓存里的
+          # hermetic-tools/tar 硬编码了旧 checkout 路径，复用会 Exit 127（toybox not found）。
+          # 换 key 强制重建缓存，让 hermetic tools 按新路径生成。
+          key: ${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.sub_level }}-bazel-pathfix-${{ github.sha }}
           restore-keys: |
-            ${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.sub_level }}-bazel-
-            ${{ inputs.android_version }}-${{ inputs.kernel_version }}-bazel-
+            ${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.sub_level }}-bazel-pathfix-
+            ${{ inputs.android_version }}-${{ inputs.kernel_version }}-bazel-pathfix-
           
       - name: 缓存工具链
         id: cache-toolchain
