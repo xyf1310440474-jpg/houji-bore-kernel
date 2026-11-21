@@ -2,6 +2,25 @@
 
 本文件记录 houji-bore-kernel 的变更。格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [Unreleased] — 2026-11-22（ZRAM 优化栈启用，本地未推送）
+
+> 真机（小米 14 / houji，6.1.138）实测发现：仓库早有 LZ4KD + NEON 优化栈，但入口开关
+> `use_zram` 默认 false，从未编译进内核（`/proc/crypto` 无 lz4k/lz4kd、写回 not set）。
+
+### Changed（变更）
+- **`use_zram` 默认 `false → true`**（`kernel-custom.yml`）：根因开关，之前 build.yml 收到的
+  一直是 false，LZ4KD/NEON 补丁栈从未启用。现在默认构建即带上优化栈；描述同步更新。
+
+### Added（新增）
+- **冷页写回能力**（`config/zram.config`）：新增 `CONFIG_ZRAM_WRITEBACK=y`，编译期打开
+  zram 写回能力（运行时是否指定 `backing_dev` 由用户决定，默认不配置、零风险）。
+- **ZRAM 优化方案文档**：[`docs/zram-optimization.md`](docs/zram-optimization.md)——真机证据、
+  改动说明、与 v1.4 运行时模块的算法分工、CI 构建与刷机步骤、验证清单、风险回退。
+
+### 未改（刻意）
+- zram 默认算法仍为 lzo-rle（不动 `CONFIG_ZRAM_DEF_COMP_*`，规避 Kconfig choice 与厂商
+  defconfig 冲突）；算法切换交给 houji-bore-tweaks 模块在运行时做（有安全闸门 + 失败回滚）。
+
 ## [Unreleased] — 2026-11-21（本地优化，尚未推送上游）
 
 > 这一节是 2026-11-21 的代码审查优化，均以独立 commit 提交，见 git log。

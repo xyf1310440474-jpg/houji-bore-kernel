@@ -68,6 +68,16 @@ dd if=/dev/block/by-name/boot_a of=/sdcard/Download/boot_backup.img bs=1M
 dd if=/sdcard/Download/boot_backup.img of=/dev/block/by-name/boot_a bs=1M
 ```
 
+## ZRAM 压缩优化（LZ4KD / NEON / 冷页写回）
+
+仓库内置 LZ4KD + ARM64 NEON 加速 + 冷页写回优化栈，`kernel-custom.yml` 的 `use_zram`
+默认开启（6.1 走完整栈，6.12/6.18 上游无补丁源会自动跳过）。编译后 zram 支持
+`lz4k` / `lz4kd`，写回能力就绪。算法默认仍是 lzo-rle，运行时切换交给
+`houji-bore-tweaks` 模块（有安全闸门），避免编译期 choice 冲突。
+
+完整说明、真机证据、构建/刷机/验证/回退步骤见
+[`docs/zram-optimization.md`](docs/zram-optimization.md)。
+
 ## 构建
 
 Fork 自 LingLuo17/AnyKernel3。GitHub Actions 自动构建，入口 workflow `kernel-custom.yml`。BORE 补丁位于 `patches/bore/bore-v7.0.0.patch`，由 `build.yml` 的「集成 BORE」步骤应用并打开 `CONFIG_SCHED_BORE=y`。
